@@ -1,0 +1,19 @@
+body{
+    height: 100vh;
+    width:100%;
+    display: flex;
+    justify-content: center;
+}
+
+.container{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#progress-bar{
+    width:500px;
+    height:40px;
+    background-color: #eed;
+    margin-bottom: 2rem;
+}
