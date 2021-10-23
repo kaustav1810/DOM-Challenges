@@ -1,132 +1,93 @@
-function MemoryGame(grid,start,score,highScore) {
-    
-    const gridEl = document.querySelector(grid);
-    const startBtn = document.querySelector(start);
-    const scoreEl = document.querySelector(score);
-    const highScoreEl = document.querySelector(highScore);
-
-    let level = 0,
-    randomTiles = [],
-    count = 5,
-    highScoreValue = localStorage.getItem('highScore') || 0,
-    canPlay = false,
-    animationDelay = 500;
-
-    init();
-
-    function init() {
-        
-        setScore(0);
-        setHighScore(highScoreValue);
-
-        let div = document.createElement('div');
-        div.classList.add('tile');
-
-        let frag = document.createDocumentFragment();
-
-        for(let i = 0;i<count;i++){
-            let node = div.cloneNode();
-
-            node.dataset.cell = i;
-
-            frag.appendChild(node);
-
-        }
-
-        gridEl.appendChild(frag);
-
-        startBtn.addEventListener('click',()=>play());
-
-        gridEl.addEventListener('click',(e)=>onClickHandler(e))
-    }
-
-    async function play() {
-
-        startBtn.setAttribute('disabled',true);
-
-        canPlay = false;
-
-        randomTiles = [...new Array(level+1)].map(()=>{
-             return Math.floor(Math.random()*count);
-        })
-
-        for(let value of randomTiles){
-        await flash(gridEl.children[value],'active');
-        }
-
-        canPlay = true;
-    }
-
-
-    async function onClickHandler(el) {
-
-        if(!canPlay) return;
-
-        [first,...randomTiles] = randomTiles;
-
-        let clicked = el.target.dataset.cell;
-
-        if(first!=clicked){
-            gridEl.classList.toggle('shake');
-            el.target.classList.toggle('wrong');
-
-            setTimeout(()=>{
-                gridEl.classList.toggle('shake');
-            el.target.classList.toggle('wrong');
-
-            },animationDelay);
-
-            setScore(0);
-
-            canPlay = false;
-
-            startBtn.removeAttribute('disabled');
-
-            return;
-        }
-
-        
-        if(randomTiles.length==0){
-            // canPlay = false;
-            level++;
-            setScore(level);
-            setTimeout(play,1000);
-        }
-        
-         await flash(el.target,'green');
-    }
-
-    async function flash(el,className) {
-        
-        el.classList.add(className);
-        
-        await new Promise(resolve => {
-
-            return setTimeout(resolve,animationDelay);
-
-        })
-        
-        el.classList.remove(className);
-        
-        await new Promise(resolve => {
-            return setTimeout(resolve,animationDelay);
-
-        })
-    }
-
-    function setScore(score) {
-        scoreEl.innerText = `Score: ${score}`;
-
-        if(score>highScoreValue) setHighScore(score)
-    }
-
-    function setHighScore(score) {
-        highScoreEl.innerText = `HighScore: ${score}`;
-
-        highScoreValue = score;
-
-        localStorage.setItem('highScore',score);
-    }
+function Board(el, size = 4) {
+	this.el = document.querySelector(el);
+	this.size = size;
+	this.activeCell = '';
+	this.color;
+	this.oddColor;
+	this.generateColor();
+	this.generateBoard();
+	this.fill();
+	this.bindEvents();
 }
 
-MemoryGame('#box','#startGame','#score','#high-score')
+// fn. for generating random colors
+const getRandomColors = function() {
+	var ratio = 0.618033988749895;
+
+	var hue = (Math.random() + ratio) % 1;
+	var saturation = Math.round(Math.random() * 100) % 85;
+	var lightness = Math.round(Math.random() * 100) % 85;
+
+	var color = 'hsl(' + Math.round(360 * hue) + ',' + saturation + '%,' + lightness + '%)';
+	var oddColor = 'hsl(' + Math.round(360 * hue) + ',' + saturation + '%,' + (lightness + 5) + '%)';
+
+	return {
+		color,
+		oddColor
+	};
+};
+
+// fn. for getting colors from getRandomColors()
+Board.prototype.generateColor = function() {
+	let { color, oddColor } = getRandomColors();
+	this.color = color;
+	this.oddColor = oddColor;
+};
+
+// fn. for generating Board
+Board.prototype.generateBoard = function() {
+	const fragment = document.createDocumentFragment();
+
+	for (var i = 0; i < this.size; i++) {
+		const row = document.createElement('div');
+		row.classList.add('row');
+		for (var j = 0; j < this.size; j++) {
+			const col = document.createElement('div');
+			col.classList.add('col');
+			col.dataset['cell'] = i + ':' + j;
+			col.style.background = this.color;
+			row.appendChild(col);
+		}
+		fragment.appendChild(row);
+	}
+	this.el.innerHTML = '';
+	this.el.appendChild(fragment);
+};
+
+let i = 0;
+
+// fn. for evaluating result of each input
+Board.prototype.bindEvents = function() {
+	this.el.addEventListener('click', (e) => {
+		const score = document.querySelector('span');
+
+		// console.log('clicked',e.target);
+		// console.log('ans',this.activeCell);
+
+		if (e.target == this.activeCell) {
+			score.innerText = ++i;
+			new Board('#board', ++this.size);
+
+		} else {
+			this.el.classList.add('shake');
+			setTimeout(() => this.el.classList.remove('shake'), 800);
+		}
+
+		e.stopPropagation();
+	});
+};
+
+// fn. for coloring the odd cell
+Board.prototype.fill = function() {
+	let row = Math.floor(Math.random() * this.size);
+	let col = Math.floor(Math.random() * this.size);
+
+	this.activeCell = document.querySelector(`[data-cell="${row}:${col}"]`);
+
+	console.log(this.activeCell);
+
+	this.activeCell.style.background = this.oddColor;
+};
+
+// generating new Board
+new Board('#board', 6);
